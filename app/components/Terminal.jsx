@@ -12,12 +12,15 @@ const Terminal = () => {
         <h1 className="text-2xl font-bold">Welcome to TerminalX</h1>
       </div>
       <div key="welcome-2" className="mt-2">
-        Based on Next.js & DaisyUI. Type <span className="font-bold text-accent">'help'</span> to see available commands.
+        Type <span className="font-bold text-accent">'help'</span> to see available commands.
       </div>
-      <div key="welcome-3" className="opacity-50">
+      <div key="welcome-3" className="opacity-70">
+        Try natural language: <span className="italic">"show me the files"</span> or <span className="italic">"create a folder named 'src'"</span>.
+      </div>
+      <div key="welcome-4" className="opacity-50">
         System time: {new Date().toLocaleString()}
       </div>
-      <div key="welcome-4" className="mb-4"></div>
+      <div key="welcome-5" className="mb-4"></div>
     </>
   );
 
@@ -45,6 +48,23 @@ const Terminal = () => {
   const inputRef = useRef(null);
   const terminalBodyRef = useRef(null);
 
+  const commands = {
+    help: 'Shows this help message.',
+    clear: 'Clears the terminal screen.',
+    ls: 'Lists directory contents.',
+    cd: 'Changes the current directory.',
+    pwd: 'Prints the current working directory.',
+    mkdir: 'Creates a new directory.',
+    rm: 'Removes a file or empty directory.',
+    cat: 'Displays the content of a file.',
+    echo: 'Displays a line of text.',
+    whoami: 'Prints the current user.',
+    date: 'Displays the current date and time.',
+    cpu: 'Shows mock CPU usage.',
+    memory: 'Shows mock memory usage.',
+    ps: 'Shows mock process list.',
+  };
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -53,7 +73,6 @@ const Terminal = () => {
     if (terminalBodyRef.current) {
       terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
     }
-    console.log("History updated:", history);
   }, [history]);
 
   const getPathObject = (path, fs = fileSystem) => {
@@ -72,11 +91,18 @@ const Terminal = () => {
 
   const updateFileSystem = (path, newDirName) => {
     const newFileSystem = JSON.parse(JSON.stringify(fileSystem));
-    const parentDir = getPathObject(path, newFileSystem);
+    let parentDir = newFileSystem;
+    const parts = path.split('/').filter(p => p);
+    for (const part of parts) {
+        if (parentDir && typeof parentDir === 'object' && parentDir[part]) {
+            parentDir = parentDir[part];
+        } else {
+            return false; // Path not found
+        }
+    }
     if (parentDir && typeof parentDir === 'object') {
       parentDir[newDirName] = {};
       setFileSystem(newFileSystem);
-      console.log("FileSystem updated: mkdir", newDirName, "at", path);
       return true;
     }
     return false;
@@ -84,60 +110,43 @@ const Terminal = () => {
   
   const removeFromFileSystem = (path, targetName) => {
     const newFileSystem = JSON.parse(JSON.stringify(fileSystem));
-    const parentDir = getPathObject(path, newFileSystem);
+    let parentDir = newFileSystem;
+    const parts = path.split('/').filter(p => p);
+    for (const part of parts) {
+        if (parentDir && typeof parentDir === 'object' && parentDir[part]) {
+            parentDir = parentDir[part];
+        } else {
+            return false; // Path not found
+        }
+    }
     if (parentDir && typeof parentDir === 'object' && parentDir[targetName]) {
       delete parentDir[targetName];
       setFileSystem(newFileSystem);
-      console.log("FileSystem updated: rm", targetName, "from", path);
       return true;
     }
     return false;
   };
 
-  const handleHelp = () => {
-    const commands = {
-      help: 'Shows this help message.',
-      clear: 'Clears the terminal screen.',
-      ls: 'Lists directory contents.',
-      cd: 'Changes the current directory.',
-      pwd: 'Prints the current working directory.',
-      mkdir: 'Creates a new directory.',
-      rm: 'Removes a file or empty directory.',
-      cat: 'Displays the content of a file.',
-      echo: 'Displays a line of text.',
-      whoami: 'Prints the current user.',
-      date: 'Displays the current date and time.',
-      cpu: 'Shows mock CPU usage.',
-      memory: 'Shows mock memory usage.',
-      ps: 'Shows mock process list.',
-    };
-    return (
-      <div>
-        <p className="mb-2 font-bold">Available commands:</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
-          {Object.entries(commands).map(([cmd, desc]) => (
-            <div key={cmd} className="flex">
-              <span className="w-24 text-accent font-semibold">{cmd}</span>
-              <span className="text-gray-400">{desc}</span>
-            </div>
-          ))}
-        </div>
+  const handleHelp = () => (
+    <div>
+      <p className="mb-2 font-bold">Available commands:</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
+        {Object.entries(commands).map(([cmd, desc]) => (
+          <div key={cmd} className="flex">
+            <span className="w-24 text-accent font-semibold">{cmd}</span>
+            <span className="text-gray-400">{desc}</span>
+          </div>
+        ))}
       </div>
-    );
-  };
+    </div>
+  );
 
-  const handleClear = () => {
-    setHistory([initialWelcomeMessage]);
-  };
-
+  const handleClear = () => setHistory([]);
   const handleLs = () => {
     const currentDir = getPathObject(currentPath);
-    if (!currentDir || typeof currentDir !== 'object') {
-      return `ls: cannot access '${currentPath}': No such file or directory`;
-    }
+    if (!currentDir || typeof currentDir !== 'object') return `ls: cannot access '${currentPath}': No such file or directory`;
     const entries = Object.keys(currentDir);
     if (entries.length === 0) return '';
-
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-1">
         {entries.map(entry => {
@@ -156,38 +165,26 @@ const Terminal = () => {
   const handleCd = (args) => {
     const target = args[0] || 'home/user';
     let newPath;
-
-    if (target.startsWith('/')) {
-      newPath = target.substring(1);
-    } else if (target === '~') {
-      newPath = 'home/user';
-    } else {
+    if (target.startsWith('/')) newPath = target.substring(1);
+    else if (target === '~') newPath = 'home/user';
+    else {
       const currentParts = currentPath === '' ? [] : currentPath.split('/');
       const targetParts = target.split('/');
       for (const part of targetParts) {
-        if (part === '..') {
-          currentParts.pop();
-        } else if (part !== '.') {
-          currentParts.push(part);
-        }
+        if (part === '..') currentParts.pop();
+        else if (part !== '.') currentParts.push(part);
       }
       newPath = currentParts.join('/');
     }
-
     const targetObj = getPathObject(newPath);
     if (targetObj && typeof targetObj === 'object') {
       setCurrentPath(newPath);
-      console.log("Path changed to:", newPath);
       return '';
-    } else if (targetObj) {
-      return `cd: not a directory: ${target}`;
-    } else {
-      return `cd: no such file or directory: ${target}`;
-    }
+    } else if (targetObj) return `cd: not a directory: ${target}`;
+    else return `cd: no such file or directory: ${target}`;
   };
 
   const handlePwd = () => `/${currentPath}`;
-
   const handleMkdir = (args) => {
     if (!args[0]) return 'mkdir: missing operand';
     const dirName = args[0];
@@ -203,9 +200,7 @@ const Terminal = () => {
     const currentDir = getPathObject(currentPath);
     if (!currentDir || !currentDir[targetName]) return `rm: cannot remove '${targetName}': No such file or directory`;
     const target = currentDir[targetName];
-    if (typeof target === 'object' && Object.keys(target).length > 0) {
-      return `rm: cannot remove '${targetName}': Directory not empty`;
-    }
+    if (typeof target === 'object' && Object.keys(target).length > 0) return `rm: cannot remove '${targetName}': Directory not empty`;
     if (removeFromFileSystem(currentPath, targetName)) return '';
     return `rm: cannot remove '${targetName}': Permission denied`;
   };
@@ -225,18 +220,25 @@ const Terminal = () => {
   const handleDate = () => new Date().toString();
   const handleCpu = () => <div className="flex items-center gap-2"><Cpu className="w-4 h-4 text-warning"/> CPU Usage: ${(Math.random() * 15 + 5).toFixed(2)}%</div>;
   const handleMemory = () => <div className="flex items-center gap-2"><MemoryStick className="w-4 h-4 text-info"/> Memory: ${(Math.random() * 4096 + 2048).toFixed(0)}MB / 8192MB</div>;
-  const handlePs = () => (
-    <pre className="text-xs">
-      {'PID\tTTY\tTIME\t\tCMD\n'}
-      {'1\t?\t00:00:01\t/sbin/init\n'}
-      {'1337\tpts/0\t00:00:00\t-bash\n'}
-      {'1350\tpts/0\t00:00:00\tps'}
-    </pre>
-  );
+  const handlePs = () => <pre className="text-xs">{'PID\tTTY\tTIME\t\tCMD\n1\t?\t00:00:01\t/sbin/init\n1337\tpts/0\t00:00:00\t-bash\n1350\tpts/0\t00:00:00\tps'}</pre>;
+
+  const parseNaturalLanguage = (query) => {
+    query = query.toLowerCase();
+    let match;
+
+    if ((match = query.match(/create (a|new)? folder (called|named)? ['"]?([^'"]+)['"]?/))) return `mkdir ${match[3]}`;
+    if (query.match(/(show|list) (me)? the files/)) return 'ls';
+    if ((match = query.match(/go to (the)? (folder|directory)? ['"]?([^'"]+)['"]?/))) return `cd ${match[3]}`;
+    if (query.match(/where am i/)) return 'pwd';
+    if ((match = query.match(/delete (the)? (file|folder|directory) ['"]?([^'"]+)['"]?/))) return `rm ${match[3]}`;
+    if ((match = query.match(/display (the)? content of ['"]?([^'"]+)['"]?/))) return `cat ${match[2]}`;
+    
+    return null;
+  };
 
   const processCommand = (commandString) => {
-    const [command, ...args] = commandString.split(/\s+/);
-    console.log(`Processing command: '${command}' with args:`, args);
+    const [command, ...args] = commandString.trim().split(/\s+/);
+    if (!command) return '';
 
     switch (command) {
       case 'help': return handleHelp();
@@ -257,23 +259,55 @@ const Terminal = () => {
     }
   };
 
+  const handleTabCompletion = (e) => {
+    const input = e.target.value;
+    const parts = input.split(' ');
+    const currentPart = parts[parts.length - 1];
+    let suggestions = [];
+
+    if (parts.length === 1) { // Command completion
+      suggestions = Object.keys(commands).filter(cmd => cmd.startsWith(currentPart));
+    } else { // File/directory completion
+      const currentDir = getPathObject(currentPath);
+      if (currentDir) {
+        suggestions = Object.keys(currentDir).filter(item => item.startsWith(currentPart));
+      }
+    }
+
+    if (suggestions.length === 1) {
+      parts[parts.length - 1] = suggestions[0];
+      e.target.value = parts.join(' ') + ' ';
+    } else if (suggestions.length > 1) {
+      setHistory(prev => [...prev, `${input}`, <div className="flex flex-wrap gap-x-4">{suggestions.join('   ')}</div>]);
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const command = e.target.value.trim();
+      const commandStr = e.target.value.trim();
       const prompt = `user@nextjs:~/${currentPath}$`;
-      const commandLine = (
-        <div className="flex w-full">
-          <span className="text-success">{prompt}</span>
-          <span className="pl-2">{command}</span>
-        </div>
-      );
+      const commandLine = <div className="flex w-full"><span className="text-success">{prompt}</span><span className="pl-2">{commandStr}</span></div>;
 
-      if (command) {
-        const output = processCommand(command);
-        setHistory(prev => [...prev, commandLine, ...(output !== null ? [output] : [])]);
-        if (command !== commandHistory[0]) {
-          setCommandHistory(prev => [command, ...prev]);
+      if (commandStr) {
+        let output = processCommand(commandStr);
+        let interpretedCmdLine = null;
+
+        if (typeof output === 'string' && output.startsWith('command not found:')) {
+          const naturalCommand = parseNaturalLanguage(commandStr);
+          if (naturalCommand) {
+            interpretedCmdLine = <div className="text-gray-500 italic pl-4">~ Interpreted as: "{naturalCommand}"</div>;
+            output = processCommand(naturalCommand);
+          }
+        }
+        
+        const newHistory = [...history, commandLine];
+        if (interpretedCmdLine) newHistory.push(interpretedCmdLine);
+        if (output !== null) newHistory.push(output);
+        setHistory(newHistory);
+
+        if (commandStr !== commandHistory[0]) {
+          setCommandHistory(prev => [commandStr, ...prev]);
         }
         setCommandHistoryIndex(-1);
       } else {
@@ -294,6 +328,9 @@ const Terminal = () => {
         setCommandHistoryIndex(newIndex);
         e.target.value = newIndex >= 0 ? commandHistory[newIndex] : '';
       }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      handleTabCompletion(e);
     }
   };
 

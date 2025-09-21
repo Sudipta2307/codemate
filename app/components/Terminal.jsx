@@ -31,7 +31,7 @@ const Terminal = () => {
   const [fileSystem, setFileSystem] = useState({
     home: {
       user: {
-        'README.md': '## Welcome to my terminal!\n\nType `help` to see available commands.\n\nThis is a virtual file system. You can create files and directories, but nothing is saved permanently.',
+        'README.md': '## Welcome to my terminal!\n\nType help to see available commands.\n\nThis is a virtual file system. You can create files and directories, but nothing is saved permanently.',
         documents: {
           'project-plan.txt': 'Milestone 1: Build the core terminal.\nMilestone 2: Add advanced features like autocomplete.'
         },
@@ -144,7 +144,7 @@ const Terminal = () => {
   const handleClear = () => setHistory([]);
   const handleLs = () => {
     const currentDir = getPathObject(currentPath);
-    if (!currentDir || typeof currentDir !== 'object') return `ls: cannot access '${currentPath}': No such file or directory`;
+    if (!currentDir || typeof currentDir !== 'object') return ls: cannot access '${currentPath}': No such file or directory;
     const entries = Object.keys(currentDir);
     if (entries.length === 0) return '';
     return (
@@ -180,29 +180,29 @@ const Terminal = () => {
     if (targetObj && typeof targetObj === 'object') {
       setCurrentPath(newPath);
       return '';
-    } else if (targetObj) return `cd: not a directory: ${target}`;
-    else return `cd: no such file or directory: ${target}`;
+    } else if (targetObj) return cd: not a directory: ${target};
+    else return cd: no such file or directory: ${target};
   };
 
-  const handlePwd = () => `/${currentPath}`;
+  const handlePwd = () => /${currentPath};
   const handleMkdir = (args) => {
     if (!args[0]) return 'mkdir: missing operand';
     const dirName = args[0];
     const currentDir = getPathObject(currentPath);
-    if (currentDir[dirName]) return `mkdir: cannot create directory '${dirName}': File exists`;
+    if (currentDir[dirName]) return mkdir: cannot create directory '${dirName}': File exists;
     if (updateFileSystem(currentPath, dirName)) return '';
-    return `mkdir: cannot create directory '${dirName}': Permission denied`;
+    return mkdir: cannot create directory '${dirName}': Permission denied;
   };
 
   const handleRm = (args) => {
     if (!args[0]) return 'rm: missing operand';
     const targetName = args[0];
     const currentDir = getPathObject(currentPath);
-    if (!currentDir || !currentDir[targetName]) return `rm: cannot remove '${targetName}': No such file or directory`;
+    if (!currentDir || !currentDir[targetName]) return rm: cannot remove '${targetName}': No such file or directory;
     const target = currentDir[targetName];
-    if (typeof target === 'object' && Object.keys(target).length > 0) return `rm: cannot remove '${targetName}': Directory not empty`;
+    if (typeof target === 'object' && Object.keys(target).length > 0) return rm: cannot remove '${targetName}': Directory not empty;
     if (removeFromFileSystem(currentPath, targetName)) return '';
-    return `rm: cannot remove '${targetName}': Permission denied`;
+    return rm: cannot remove '${targetName}': Permission denied;
   };
 
   const handleCat = (args) => {
@@ -210,8 +210,8 @@ const Terminal = () => {
     const fileName = args[0];
     const currentDir = getPathObject(currentPath);
     const fileContent = currentDir ? currentDir[fileName] : undefined;
-    if (fileContent === undefined) return `cat: ${fileName}: No such file or directory`;
-    if (typeof fileContent === 'object') return `cat: ${fileName}: Is a directory`;
+    if (fileContent === undefined) return cat: ${fileName}: No such file or directory;
+    if (typeof fileContent === 'object') return cat: ${fileName}: Is a directory;
     return <pre className="whitespace-pre-wrap">{fileContent}</pre>;
   };
 
@@ -226,12 +226,12 @@ const Terminal = () => {
     query = query.toLowerCase();
     let match;
 
-    if ((match = query.match(/create (a|new)? folder (called|named)? ['"]?([^'"]+)['"]?/))) return `mkdir ${match[3]}`;
+    if ((match = query.match(/create (a|new)? folder (called|named)? ['"]?([^'"]+)['"]?/))) return mkdir ${match[3]};
     if (query.match(/(show|list) (me)? the files/)) return 'ls';
-    if ((match = query.match(/go to (the)? (folder|directory)? ['"]?([^'"]+)['"]?/))) return `cd ${match[3]}`;
+    if ((match = query.match(/go to (the)? (folder|directory)? ['"]?([^'"]+)['"]?/))) return cd ${match[3]};
     if (query.match(/where am i/)) return 'pwd';
-    if ((match = query.match(/delete (the)? (file|folder|directory) ['"]?([^'"]+)['"]?/))) return `rm ${match[3]}`;
-    if ((match = query.match(/display (the)? content of ['"]?([^'"]+)['"]?/))) return `cat ${match[2]}`;
+    if ((match = query.match(/delete (the)? (file|folder|directory) ['"]?([^'"]+)['"]?/))) return rm ${match[3]};
+    if ((match = query.match(/display (the)? content of ['"]?([^'"]+)['"]?/))) return cat ${match[2]};
     
     return null;
   };
@@ -255,7 +255,7 @@ const Terminal = () => {
       case 'cpu': return handleCpu();
       case 'memory': return handleMemory();
       case 'ps': return handlePs();
-      default: return `command not found: ${command}`;
+      default: return command not found: ${command};
     }
   };
 
@@ -278,7 +278,7 @@ const Terminal = () => {
       parts[parts.length - 1] = suggestions[0];
       e.target.value = parts.join(' ') + ' ';
     } else if (suggestions.length > 1) {
-      setHistory(prev => [...prev, `${input}`, <div className="flex flex-wrap gap-x-4">{suggestions.join('   ')}</div>]);
+      setHistory(prev => [...prev, ${input}, <div className="flex flex-wrap gap-x-4">{suggestions.join('   ')}</div>]);
     }
   };
 
@@ -286,7 +286,7 @@ const Terminal = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const commandStr = e.target.value.trim();
-      const prompt = `user@nextjs:~/${currentPath}$`;
+      const prompt = user@nextjs:~/${currentPath}$;
       const commandLine = <div className="flex w-full"><span className="text-success">{prompt}</span><span className="pl-2">{commandStr}</span></div>;
 
       if (commandStr) {
@@ -353,7 +353,7 @@ const Terminal = () => {
         ))}
       </div>
       <div className="flex items-center px-4 h-10 border-t border-base-content/10">
-        <span className="text-success">{`user@nextjs:~/${currentPath}$`}</span>
+        <span className="text-success">{user@nextjs:~/${currentPath}$}</span>
         <input
           ref={inputRef}
           type="text"
